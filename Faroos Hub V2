@@ -1,0 +1,67 @@
+local P, R, C = game.Players.LocalPlayer, game:GetService("RunService"), workspace.CurrentCamera
+local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local Main = Create("Frame", sg, {Size = UDim2.new(0,250,0,380), Position = UDim2.new(0.5,-125,0.5,-190), BackgroundColor3 = Color3.new(1,1,1), Visible = false})
+
+function Create(cls, parent, props)
+    local obj = Instance.new(cls, parent)
+    for k, v in pairs(props) do obj[k] = v end
+    return obj
+end
+
+local S, S2 = Create("UIStroke", Main, {Thickness = 3}), nil
+local Sc = Create("ScrollingFrame", Main, {Size = UDim2.new(1,-20,1,-50), Position = UDim2.new(0,10,0,40), BackgroundTransparency = 1, AutomaticCanvasSize = 2, ScrollBarThickness = 0})
+Create("UIListLayout", Sc, {Padding = UDim.new(0,5)})
+local Btn = Create("TextButton", sg, {Size = UDim2.new(0,70,0,70), Position = UDim2.new(0,20,0.5,-35), Text = "FAROOS", BackgroundColor3 = Color3.new(1,1,1), Font = 3, TextSize = 10})
+S2 = Create("UIStroke", Btn, {Thickness = 3})
+Create("UICorner", Btn, {CornerRadius = UDim.new(1,0)})
+
+local f, sp, _n, _h, _a = false, 60, false, false, false
+function Add(txt, cb)
+    local b = Create("TextButton", Sc, {Size = UDim2.new(1,0,0,35), Text = txt, Font = 3, TextSize = 10, BackgroundColor3 = Color3.fromRGB(240,240,240)})
+    Create("UICorner", b, {CornerRadius = UDim.new(0,5)})
+    b.MouseButton1Click:Connect(cb)
+end
+
+-- AIMBOT TEST LOGIC (Field of View / Target Check)
+local function GetClosest()
+    local target, dist = nil, 200 -- 200 Stud Range
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= P and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local pos, vis = C:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(C.ViewportSize.X/2, C.ViewportSize.Y/2)).Magnitude
+            if vis and mag < dist then dist = mag target = v.Character.HumanoidRootPart end
+        end
+    end
+    return target
+end
+
+Add("WIZARD FLY (3D)", function()
+    f = not f
+    local bv = Create("BodyVelocity", P.Character.HumanoidRootPart, {MaxForce = Vector3.new(1e6,1e6,1e6)})
+    local bg = Create("BodyGyro", P.Character.HumanoidRootPart, {MaxTorque = Vector3.new(1e6,1e6,1e6)})
+    task.spawn(function()
+        while f do
+            P.Character.Humanoid.PlatformStand = true
+            bv.Velocity = P.Character.Humanoid.MoveDirection.Magnitude > 0 and C.CFrame.LookVector * (sp * ((P.Character.Humanoid.MoveDirection:Dot(C.CFrame.LookVector) < -0.5) and -1 or 1)) or Vector3.new(0,0,0)
+            bg.CFrame = C.CFrame task.wait()
+        end
+        bv:Destroy() bg:Destroy() P.Character.Humanoid.PlatformStand = false
+    end)
+end)
+
+Add("AIMBOT (CAMERA LOCK)", function() _a = not _a end)
+Add("NOCLIP", function() _n = not _n end)
+Add("GIGA HITBOX", function() _h = not _h end)
+Add("TEAM ESP", function()
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= P and v.Character then Create("Highlight", v.Character, {FillColor = v.TeamColor.Color}) end
+    end
+end)
+
+Btn.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+R.RenderStepped:Connect(function()
+    if _a then local t = GetClosest() if t then C.CFrame = CFrame.new(C.CFrame.Position, t.Position) end end
+    if _n and P.Character then for _, v in pairs(P.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end end
+    if _h then for _, v in pairs(game.Players:GetPlayers()) do if v ~= P and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then v.Character.HumanoidRootPart.Size = Vector3.new(15,15,15) end end end
+    local c = Color3.fromHSV(tick()%4/4, 1, 1) S.Color, S2.Color = c, c
+end)
